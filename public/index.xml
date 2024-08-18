@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>bufferb0y</title>
+    <link>http://localhost:1313/</link>
+    <description>Recent content on bufferb0y</description>
+    <generator>Hugo</generator>
+    <language>en-us</language>
+    <lastBuildDate>Thu, 15 Aug 2024 02:39:15 -0400</lastBuildDate>
+    <atom:link href="http://localhost:1313/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Epoch Exfil I</title>
+      <link>http://localhost:1313/posts/epoch-exfil-i/</link>
+      <pubDate>Thu, 15 Aug 2024 02:39:15 -0400</pubDate>
+      <guid>http://localhost:1313/posts/epoch-exfil-i/</guid>
+      <description>This will be a series of posts detailing my research on using NTP for exfiltration. In these upcoming entries, I intend to help those investigating how attackers could exploit this technique to transfer data in and out of a network, as well as explore methods for detecting such activities.&#xA;ToC&#xA;What is the Network Time Protocol? Client implementation What is the Network Time Protocol? The Network Time Protcol Version 4 (NTPv4) is defined in RFC 5905</description>
+    </item>
+  </channel>
+</rss>

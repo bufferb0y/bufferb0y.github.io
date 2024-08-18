@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en-us">
+  <head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+    <title>Epoch Exfil I // bufferb0y</title>
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <meta charset="utf-8" />
+    <meta name="generator" content="Hugo 0.132.2">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="Me" />
+    <meta name="description" content="" />
+    <link rel="stylesheet" href="/css/main.min.b3b2db488e301fc97be1fe23481c371c860a310f47fffb5ec483480a773975c4.css" />
+    
+
+    
+  
+
+
+    
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Epoch Exfil I">
+  <meta name="twitter:description" content="This will be a series of posts detailing my research on using NTP for exfiltration. In these upcoming entries, I intend to help those investigating how attackers could exploit this technique to transfer data in and out of a network, as well as explore methods for detecting such activities.
+ToC
+What is the Network Time Protocol? Client implementation What is the Network Time Protocol? The Network Time Protcol Version 4 (NTPv4) is defined in RFC 5905">
+
+    <meta property="og:url" content="http://localhost:1313/posts/epoch-exfil-i/">
+  <meta property="og:site_name" content="bufferb0y">
+  <meta property="og:title" content="Epoch Exfil I">
+  <meta property="og:description" content="This will be a series of posts detailing my research on using NTP for exfiltration. In these upcoming entries, I intend to help those investigating how attackers could exploit this technique to transfer data in and out of a network, as well as explore methods for detecting such activities.
+ToC
+What is the Network Time Protocol? Client implementation What is the Network Time Protocol? The Network Time Protcol Version 4 (NTPv4) is defined in RFC 5905">
+  <meta property="og:locale" content="en_us">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="posts">
+    <meta property="article:published_time" content="2024-08-15T02:39:15-04:00">
+    <meta property="article:modified_time" content="2024-08-15T02:39:15-04:00">
+
+
+  </head>
+  <body>
+    <header class="app-header">
+      <a href="http://localhost:1313/"><img class="app-header-avatar" src="/avatar.jpg" alt="Me" /></a>
+      <span class="app-header-title">bufferb0y</span>
+      <nav class="app-header-menu">
+          <a class="app-header-menu-item" href="/">Home</a>
+             - 
+          
+          <a class="app-header-menu-item" href="/tags/">Tags</a>
+             - 
+          
+          <a class="app-header-menu-item" href="/about/">About</a>
+      </nav>
+      <p>Welcome</p>
+      <div class="app-header-social">
+        
+          <a href="https://github.com/bufferb0y" target="_blank" rel="noreferrer noopener me">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-github">
+  <title>Github</title>
+  <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+</svg>
+          </a>
+        
+      </div>
+    </header>
+    <main class="app-container">
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class ="post-title">Epoch Exfil I</h1>
+      <div class="post-meta">
+        <div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-calendar">
+  <title>calendar</title>
+  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line>
+</svg>
+          Aug 15, 2024
+        </div>
+        <div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-clock">
+  <title>clock</title>
+  <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+</svg>
+          4 min read
+        </div>
+      </div>
+    </header>
+    <div class="post-content">
+      <p><code>This will be a series of posts detailing my research on using NTP for exfiltration. In these upcoming entries,  I intend to help those investigating how attackers could exploit this technique to transfer data in and out of a network,  as well as explore methods for detecting such activities.</code></p>
+<hr>
+<p><strong>ToC</strong></p>
+<ul>
+<li><a href="#WhatNTP">What is the Network Time Protocol?</a></li>
+<li><a href="#Client">Client implementation</a></li>
+</ul>
+<hr>
+<!-- raw HTML omitted -->
+<h3 id="what-is-the-network-time-protocol">What is the Network Time Protocol?</h3>
+<p><code>The Network Time Protcol Version 4 (NTPv4) is defined in</code> <a href="https://www.rfc-editor.org/rfc/rfc5905">RFC 5905</a></p>
+<pre tabindex="0"><code>... the Network Time Protocol version 4 (NTPv4), which is widely used to
+synchronize system clocks among a set of distributed time servers and clients.
+</code></pre><p><code>In short NTP is used to synchronize system clocks between computers.</code></p>
+<p><code>When talking about NTP there are three implementations..</code></p>
+<ul>
+<li>Primary server - synchronized to a reference clock directly traceable to UTC (e.g., GPS, Galileo, etc.)</li>
+<li>Secondary server - has one or more upstream servers and one or more downstream servers or clients.</li>
+<li>Client - synchronizes to one or more upstream servers, but does not provide synchronization to dependent clients.</li>
+</ul>
+<p><code>We will be focusing on the client implementation.</code></p>
+<hr>
+<!-- raw HTML omitted -->
+<h3 id="client-implementation">Client implementation</h3>
+<h4 id="time-format">Time format</h4>
+<p><a href="https://www.rfc-editor.org/rfc/rfc5905#section-6">Section 6</a> <code>provides details regarding the time values and their respective formats.</code></p>
+<ul>
+<li>There are three NTP time formats, a 128-bit date format, a 64-bit timestamp format, and a 32-bit short format</li>
+<li>The 64-bit timestamp format is used in packet headers and other places with limited word size.</li>
+<li>All NTP time values are represented in twos-complement format</li>
+<li>Bits numbered in big-endian</li>
+</ul>
+<hr>
+<h4 id="packet-information">Packet information</h4>
+<p><code>Jumping down to</code> <a href="https://www.rfc-editor.org/rfc/rfc5905#section-7.3">Section 7.3</a> <code>we find information about the packet</code></p>
+<ul>
+<li>The NTP packet is a UDP datagram</li>
+</ul>
+<p><code>This tells us we need to create a UDP socket.</code>
+<code>The next are the Packet Header Format and the Packet Header Values.</code></p>
+<hr>
+<h5 id="packet-header-format">Packet Header Format</h5>
+<pre tabindex="0"><code>The NTP packet header shown in Figure 8 has 12 words followed by optional
+extension fields and finally an optional message authentication code
+(MAC) consisting of the Key Identifier field and Message Digest field.
+</code></pre><pre tabindex="0"><code>                      Figure 8: Packet Header Format
+
+       0                   1                   2                   3
+       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |LI | VN  |Mode |    Stratum     |     Poll      |  Precision   |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         Root Delay                            |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                         Root Dispersion                       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          Reference ID                         |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +                     Reference Timestamp (64)                  +
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +                      Origin Timestamp (64)                    +
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +                      Receive Timestamp (64)                   +
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      +                      Transmit Timestamp (64)                  +
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      .                                                               .
+      .                    Extension Field 1 (variable)               .
+      .                                                               .
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      .                                                               .
+      .                    Extension Field 2 (variable)               .
+      .                                                               .
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                          Key Identifier                       |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+      |                                                               |
+      |                            dgst (128)                         |
+      |                                                               |
+      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</code></pre><hr>
+<h5 id="packet-header-values">Packet Header Values</h5>
+<pre tabindex="0"><code>LI Leap Indicator (leap): 2-bit integer warning of an impending leap
+second to be inserted or deleted in the last minute of the current
+month with values defined in Figure 9.
+</code></pre><pre tabindex="0"><code>           +-------+----------------------------------------+
+           | Value | Meaning                                |
+           +-------+----------------------------------------+
+           | 0     | no warning                             |
+           | 1     | last minute of the day has 61 seconds  |
+           | 2     | last minute of the day has 59 seconds  |
+           | 3     | unknown (clock unsynchronized)         |
+           +-------+----------------------------------------+
+
+                         Figure 9: Leap Indicator
+</code></pre><hr>
+<pre tabindex="0"><code>VN Version Number (version): 3-bit integer representing the NTP
+version number, currently 4.
+</code></pre><hr>
+<pre tabindex="0"><code>Mode (mode): 3-bit integer representing the mode, with values defined in Figure 10.
+</code></pre><pre tabindex="0"><code>                      +-------+--------------------------+
+                      | Value | Meaning                  |
+                      +-------+--------------------------+
+                      | 0     | reserved                 |
+                      | 1     | symmetric active         |
+                      | 2     | symmetric passive        |
+                      | 3     | client                   |
+                      | 4     | server                   |
+                      | 5     | broadcast                |
+                      | 6     | NTP control message      |
+                      | 7     | reserved for private use |
+                      +-------+--------------------------+
+
+                       Figure 10: Association Modes
+</code></pre><hr>
+<p><code>The most important part of the NTP packet is the first 8 bits (byte). It informs the server about</code></p>
+<ul>
+<li>A time leap (LI)</li>
+<li>The NTP version being used (VN)</li>
+<li>Mode (in our case client)</li>
+</ul>
+<p><code>I will not be going into detail about the other values because we will be overwritting them to exfiltrate data.</code></p>
+<hr>
+<h1 id="next-post">Next post</h1>
+<p><code>In the next blog post we will start writing our NTP client and server to test our exfiltration method..</code>
+<a href="/posts/epoch-exfil-ii/">Next</a></p>
+<hr>
+
+    </div>
+    <div class="post-footer">
+      
+    </div>
+  </article>
+
+    </main>
+  </body>
+</html>
